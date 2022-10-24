@@ -12182,7 +12182,7 @@ int *RM_GetCommandKeysWithFlags(RedisModuleCtx *ctx, RedisModuleString **argv, i
     }
 
     getKeysResult result = GETKEYS_RESULT_INIT;
-    getKeysFromCommand(cmd, argv, argc, &result);
+    getKeysFromCommandWithSpecs(cmd, argv, argc, GET_KEYSPEC_DEFAULT, &result);
 
     *num_keys = result.numkeys;
     if (!result.numkeys) {

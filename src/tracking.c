@@ -223,7 +223,7 @@ void trackingRememberKeys(client *c) {
     if ((optin && !caching_given) || (optout && caching_given)) return;
 
     getKeysResult result = GETKEYS_RESULT_INIT;
-    int numkeys = getKeysFromCommand(c->cmd,c->argv,c->argc,&result);
+    int numkeys = getKeysFromCommandWithSpecs(c->cmd,c->argv,c->argc,GET_KEYSPEC_DEFAULT,&result);
     if (!numkeys) {
         getKeysFreeResult(&result);
         return;

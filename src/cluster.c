@@ -6733,7 +6733,7 @@ clusterNode *getNodeByQuery(client *c, struct redisCommand *cmd, robj **argv, in
         margv = ms->commands[i].argv;
 
         getKeysResult result = GETKEYS_RESULT_INIT;
-        numkeys = getKeysFromCommand(mcmd,margv,margc,&result);
+        numkeys = getKeysFromCommandWithSpecs(mcmd,margv,margc,GET_KEYSPEC_INCLUDE_NOT_KEYS,&result);
         keyindex = result.keys;
 
         for (j = 0; j < numkeys; j++) {

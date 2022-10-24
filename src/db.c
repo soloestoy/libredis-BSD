@@ -1882,7 +1882,6 @@ invalid_spec:
 }
 
 /* Return all the arguments that are keys in the command passed via argc / argv. 
- * This function will eventually replace getKeysFromCommand.
  *
  * The command returns the positions of all the key arguments inside the array,
  * so the actual return value is a heap allocated array of integers. The
@@ -2010,82 +2009,7 @@ int getChannelsFromCommand(struct redisCommand *cmd, robj **argv, int argc, getK
     return 0;
 }
 
-/* The base case is to use the keys position as given in the command table
- * (firstkey, lastkey, step).
- * This function works only on command with the legacy_range_key_spec,
- * all other commands should be handled by getkeys_proc. 
- * 
- * If the commands keyspec is incomplete, no keys will be returned, and the provided
- * keys function should be called instead.
- * 
- * NOTE: This function does not guarantee populating the flags for 
- * the keys, in order to get flags you should use getKeysUsingKeySpecs. */
-int getKeysUsingLegacyRangeSpec(struct redisCommand *cmd, robj **argv, int argc, getKeysResult *result) {
-    int j, i = 0, last, first, step;
-    keyReference *keys;
-    UNUSED(argv);
-
-    if (cmd->legacy_range_key_spec.begin_search_type == KSPEC_BS_INVALID) {
-        result->numkeys = 0;
-        return 0;
-    }
-
-    first = cmd->legacy_range_key_spec.bs.index.pos;
-    last = cmd->legacy_range_key_spec.fk.range.lastkey;
-    if (last >= 0)
-        last += first;
-    step = cmd->legacy_range_key_spec.fk.range.keystep;
-
-    if (last < 0) last = argc+last;
-
-    int count = ((last - first)+1);
-    keys = getKeysPrepareResult(result, count);
-
-    for (j = first; j <= last; j += step) {
-        if (j >= argc || j < first) {
-            /* Modules commands, and standard commands with a not fixed number
-             * of arguments (negative arity parameter) do not have dispatch
-             * time arity checks, so we need to handle the case where the user
-             * passed an invalid number of arguments here. In this case we
-             * return no keys and expect the command implementation to report
-             * an arity or syntax error. */
-            if (cmd->flags & CMD_MODULE || cmd->arity < 0) {
-                result->numkeys = 0;
-                return 0;
-            } else {
-                serverPanic("Redis built-in command declared keys positions not matching the arity requirements.");
-            }
-        }
-        keys[i].pos = j;
-        /* Flags are omitted from legacy key specs */
-        keys[i++].flags = 0;
-    }
-    result->numkeys = i;
-    return i;
-}
-
-/* Return all the arguments that are keys in the command passed via argc / argv.
- *
- * The command returns the positions of all the key arguments inside the array,
- * so the actual return value is a heap allocated array of integers. The
- * length of the array is returned by reference into *numkeys.
- *
- * 'cmd' must be point to the corresponding entry into the redisCommand
- * table, according to the command name in argv[0].
- *
- * This function uses the command table if a command-specific helper function
- * is not required, otherwise it calls the command-specific function. */
-int getKeysFromCommand(struct redisCommand *cmd, robj **argv, int argc, getKeysResult *result) {
-    if (cmd->flags & CMD_MODULE_GETKEYS) {
-        return moduleGetCommandKeysViaAPI(cmd,argv,argc,result);
-    } else if (cmd->getkeys_proc) {
-        return cmd->getkeys_proc(cmd,argv,argc,result);
-    } else {
-        return getKeysUsingLegacyRangeSpec(cmd,argv,argc,result);
-    }
-}
-
-/* Free the result of getKeysFromCommand. */
+/* Free the result of getKeysFromCommandWithSpecs. */
 void getKeysFreeResult(getKeysResult *result) {
     if (result && result->keys != result->keysbuf)
         zfree(result->keys);
